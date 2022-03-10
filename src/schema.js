@@ -16,7 +16,7 @@ const hikaruUserSchema = new mongoose.Schema({
      * Update Monthly watch count
      */
     const date = new Date();
-    const month = 12 * date.getFullYear() + date.getMonth();
+    const month = 12 * date.getFullYear() + date.getMonth() + 1;
     let monthlyViews = await MonthlyViews.findOne({
       discordId: doc.discordId,
       month,
