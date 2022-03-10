@@ -4,7 +4,7 @@ const { HikaruUser } = require('../schema');
 module.exports = {
   data: new SlashCommandBuilder()
     .setName('log')
-    .setDescription('Log multiple videos')
+    .setDescription('Log videos')
     .addIntegerOption((option) =>
       option
         .setName('start')
