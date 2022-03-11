@@ -6,49 +6,12 @@ mongoose.connect(mongoURI, {
   useUnifiedTopology: true,
 });
 
-const hikaruUserSchema = new mongoose.Schema({
-  discordId: { type: String, required: true },
-  watched: { type: [Number], default: [] },
-  total: { type: Number, default: 0 },
-}).post('save', async (doc) => {
-  if (doc.total !== doc.watched.length) {
-    /**
-     * Update Monthly watch count
-     */
-    const date = new Date();
-    const month = 12 * date.getFullYear() + date.getMonth() + 1;
-    let monthlyViews = await MonthlyViews.findOne({
-      discordId: doc.discordId,
-      month,
-    });
-    if (!monthlyViews) {
-      monthlyViews = await MonthlyViews.create({
-        discordId: doc.discordId,
-        month,
-      });
-    }
-    monthlyViews.watched += doc.watched.length - doc.total;
-    console.log('monthly views', monthlyViews);
-    monthlyViews.save();
+const videoViewSchema = new mongoose.Schema({
+  discordId: { type: String, required: true, unique: false },
+  index: { type: Number, required: true, unique: false },
+  date: { type: Date, required: true, unique: false },
+}).index({ discordId: 1, index: 1 }, { unique: true });
 
-    /**
-     * Update total
-     */
-    doc.total = doc.watched.length;
-    console.log(doc.total);
-    doc.save();
-  }
-});
+const VideoView = mongoose.model('VideoView', videoViewSchema);
 
-const monthlyViewsSchema = new mongoose.Schema({
-  discordId: { type: String },
-  // we use integer values for the month, starting from January 1AD
-  // for example march 2022 = (12 * 2022 + 3)
-  month: { type: Number },
-  watched: { type: Number, default: 0 },
-});
-
-const HikaruUser = mongoose.model('HikaruUser', hikaruUserSchema);
-const MonthlyViews = mongoose.model('MonthlyViews', monthlyViewsSchema);
-
-module.exports = { HikaruUser, MonthlyViews };
+module.exports = { VideoView };
