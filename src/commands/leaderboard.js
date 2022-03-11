@@ -28,6 +28,9 @@ module.exports = {
     let year = interaction.options.getInteger('year');
     const month = interaction.options.getInteger('month');
 
+    /**
+     * Get all time result
+     */
     if (!year && !month) {
       // find top users
       const users = await HikaruUser.find({}).sort('-total').limit(10).exec();
@@ -47,8 +50,10 @@ module.exports = {
       reply += '```';
     }
 
+    /**
+     * Get one year's result
+     */
     if (year && !month) {
-      // get a whole year's result
       if (year > new Date().getFullYear()) {
         return await interaction.reply(
           `We're not in ${year} yet. Be patient...`
@@ -101,12 +106,25 @@ module.exports = {
       return await interaction.reply(reply);
     }
 
+    /**
+     * If the user provides a month but not a year,
+     * give data for the newest valid month (ie either this year,
+     * or last year if that month is still in the future)
+     */
     if (month && !year) {
-      year = Number(new Date().getFullYear());
+      const date = new Date();
+      year = date.getFullYear();
+
+      // Date() months are 0-11, user input months are 1-12
+      if (date.getMonth() + 1 > month) {
+        year -= 1;
+      }
     }
 
+    /**
+     * Get one month's result
+     */
     if (year && month) {
-      // get one month's result
       reply = `Leaderboard for ${getTextMonth(month)} ${year}\n\`\`\``;
 
       const searchMonth = 12 * year + month;
