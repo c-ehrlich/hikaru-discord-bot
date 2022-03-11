@@ -1,6 +1,6 @@
 const { rankEmoji } = require('../utils/rankEmoji');
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { HikaruUser, MonthlyViews } = require('../schema');
+const { VideoView } = require('../schema');
 const { getTextMonth } = require('../utils/getTextMonth');
 
 module.exports = {
@@ -23,136 +23,123 @@ module.exports = {
         .setMaxValue(12)
     ),
   async execute(interaction) {
-    let reply = 'LOGIC ERROR';
-
-    let year = interaction.options.getInteger('year');
+    const year = interaction.options.getInteger('year');
     const month = interaction.options.getInteger('month');
+    const date = new Date();
 
-    /**
-     * Get all time result
-     */
-    if (!year && !month) {
-      // find top users
-      const users = await HikaruUser.find({}).sort('-total').limit(10).exec();
-
-      reply = 'All-time Leaderboard:\n```';
-
-      users.forEach((user) => {
-        user.discord = interaction.client.users.cache.get(user.discordId);
-      });
-
-      users.forEach((user, index) => {
-        reply += `${rankEmoji(index + 1)}: ${user.discord.username}#${
-          user.discord.discriminator
-        } - ${user.total}\n`;
-      });
-
-      reply += '```';
+    // make sure we're not trying to find data from the future
+    if (
+      year > date.getFullYear() ||
+      (year == date.getFullYear() && month - 1 > date.getMonth())
+    ) {
+      return await interaction.reply(
+        'If I could predict the future I would quit my job as a Discord Bot'
+      );
     }
 
-    /**
-     * Get one year's result
-     */
-    if (year && !month) {
-      if (year > new Date().getFullYear()) {
-        return await interaction.reply(
-          `We're not in ${year} yet. Be patient...`
-        );
-      }
+    const data = await findData(year, month);
 
-      reply = `Leaderboard for ${year}\n\`\`\``;
-
-      const query = await MonthlyViews.find({
-        month: { $gte: 12 * year + 1, $lte: 12 * (year + 1) },
-      });
-      const data = {};
-
-      query.forEach((item) => {
-        if (!data[item.discordId]) {
-          data[item.discordId] = 0;
-        }
-        data[item.discordId] += item.watched;
-      });
-
-      console.log(data);
-
-      const mappedHash = Object.keys(data)
-        .sort((a, b) => {
-          return data[b].watched - data[a].watched;
-        })
-        .map((item) => ({
-          discordId: item,
-          watched: data[item],
-        }));
-
-      if (mappedHash.length === 0) {
-        return await interaction.reply(
-          `Looks like there is no data for ${year}`
-        );
-      }
-
-      mappedHash.forEach((item) => {
-        item.discord = interaction.client.users.cache.get(item.discordId);
-      });
-
-      mappedHash.forEach((item, index) => {
-        reply += `${rankEmoji(index + 1)}: ${item.discord.username}#${
-          item.discord.discriminator
-        } - ${item.watched}\n`;
-      });
-
-      reply += '```';
-
-      return await interaction.reply(reply);
+    if (data.length === 0) {
+      return await interaction.reply(noDataFoundString(year, month));
     }
 
-    /**
-     * If the user provides a month but not a year,
-     * give data for the newest valid month (ie either this year,
-     * or last year if that month is still in the future)
-     */
-    if (month && !year) {
-      const date = new Date();
-      year = date.getFullYear();
+    data.forEach((item) => {
+      item.discord = interaction.client.users.cache.get(item._id);
+    });
 
-      // Date() months are 0-11, user input months are 1-12
-      if (date.getMonth() + 1 > month) {
-        year -= 1;
-      }
-    }
-
-    /**
-     * Get one month's result
-     */
-    if (year && month) {
-      reply = `Leaderboard for ${getTextMonth(month)} ${year}\n\`\`\``;
-
-      const searchMonth = 12 * year + month;
-
-      const data = await MonthlyViews.find({ month: searchMonth })
-        .sort('-watched')
-        .limit(10)
-        .exec();
-
-      if (data.length === 0) {
-        return await interaction.reply(
-          `Looks like there is no data for ${getTextMonth(month)} ${year}`
-        );
-      }
-
-      data.forEach((item) => {
-        item.discord = interaction.client.users.cache.get(item.discordId);
-      });
-
-      data.forEach((item, index) => {
-        reply += `${rankEmoji(index + 1)}: ${item.discord.username}#${
-          item.discord.discriminator
-        } - ${item.watched}\n`;
-      });
-
-      reply += '```';
-    }
+    const reply = createLeaderboardString(data, year, month);
 
     return await interaction.reply(reply);
   },
 };
+
+function createLeaderboardString(data, year, month) {
+  console.log(year, month);
+  let header = '';
+  let body = '';
+  if (!year && !month) {
+    header = `All-time leaderboard`;
+  }
+
+  if (year && !month) {
+    header = `Leaderboard for ${year}`;
+  }
+
+  if (!year && month) {
+    const date = new Date();
+    const currentMonth = date.getMonth() + 1;
+    year = date.getFullYear();
+    if (month > currentMonth) year -= 1;
+  }
+
+
+  if (year & month) {
+    header = `Leaderboard for ${getTextMonth(month)} ${year}`;
+  }
+
+  data.forEach((item, acc) => {
+    body += `${rankEmoji(acc + 1)}. ${item.discord.username} - ${item.count}\n`;
+  });
+
+  return `${header}\n\`\`\`${body}\`\`\``;
+}
+
+async function findData(year, month) {
+  // JavaScript dates count month from 0
+  if (month) month -= 1;
+
+  let gte = new Date(0);
+  let lt = new Date(3000, 0);
+
+  if (year && !month) {
+    gte = new Date(year, 0);
+    lt = new Date(year + 1, 0);
+  }
+
+  // Set year if user provided a month but not a year
+  if (!year && month) {
+    year = new Date().getFullYear();
+    if (month > new Date().getMonth()) {
+      year -= 1;
+    }
+  }
+
+  if (year && month) {
+    gte = new Date(year, month);
+    lt = new Date(year, month + 1);
+  }
+
+  const data = await VideoView.aggregate([
+    { $match: { date: { $gte: gte, $lt: lt } } },
+    {
+      $group: {
+        _id: '$discordId',
+        count: { $sum: 1 },
+      },
+    },
+    {
+      $sort: { count: -1 },
+    },
+  ]).limit(10);
+
+  return data;
+}
+
+function noDataFoundString(year, month) {
+  if (!year && !month) {
+    return 'Looks like nobody has logged any data yet';
+  }
+
+  if (year && !month) {
+    return `Looks like there are no logs for ${year}`;
+  }
+
+  if (!year && month) {
+    const date = new Date();
+    const currentMonth = date.getMonth() + 1;
+    year = date.getFullYear();
+    if (month > currentMonth) year -= 1;
+  }
+
+  return `Looks like there are no logs for ${getTextMonth(month)} ${year}`;
+}
