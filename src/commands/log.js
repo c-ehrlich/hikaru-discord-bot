@@ -1,5 +1,5 @@
 const { SlashCommandBuilder } = require('@discordjs/builders');
-const { HikaruUser } = require('../schema');
+const { VideoView } = require('../schema');
 
 module.exports = {
   data: new SlashCommandBuilder()
@@ -23,27 +23,29 @@ module.exports = {
     const start = interaction.options.getInteger('start');
     const end = interaction.options.getInteger('end');
 
-    // find or create user
-    let user = await HikaruUser.findOne({
-      discordId: interaction.user.id,
-    }).exec();
-    if (!user) {
-      user = await HikaruUser.create({ discordId: interaction.user.id });
-    }
+    const discordId = interaction.user.id;
+    const date = new Date();
 
-    // update watched list
-    const watched = [...user.watched];
-    for (let i = Math.min(start, end); i <= Math.max(start, end); i++) {
-      if (watched.indexOf(i) === -1) {
-        watched.push(i);
+    const watched = await VideoView.find({ discordId });
+    const toCreate = [];
+
+    for (let index = start; index <= end; index++) {
+      if (watched.findIndex((item) => item.index === index) === -1) {
+        toCreate.push({
+          discordId,
+          index,
+          date,
+        });
       }
     }
-    user.watched = watched;
-    user.save();
+
+    await VideoView.insertMany(toCreate);
+
+    const count = watched.length + toCreate.length;
 
     await interaction.reply(
       `Logged from #${start} to #${end} for ${interaction.user.username}#${interaction.user.discriminator}\n` +
-        `Total videos watched: ${user.watched.length}`
+        `Total videos watched: ${count}`
     );
   },
 };
