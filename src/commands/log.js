@@ -24,7 +24,6 @@ module.exports = {
     const end = interaction.options.getInteger('end');
 
     const discordId = interaction.user.id;
-    const date = new Date();
 
     const watched = await VideoView.find({ discordId });
     const toCreate = [];
@@ -34,7 +33,6 @@ module.exports = {
         toCreate.push({
           discordId,
           index,
-          date,
         });
       }
     }
