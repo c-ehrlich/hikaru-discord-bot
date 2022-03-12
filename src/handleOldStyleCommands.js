@@ -54,11 +54,6 @@ module.exports = {
             continue;
           }
 
-          console.log(
-            'end of messagesTemp',
-            messagesTemp[messagesTemp.length - 1].id
-          );
-
           if (allMessages.length > 0) {
             if (
               messagesTemp[messagesTemp.length - 1].id ===
@@ -71,18 +66,36 @@ module.exports = {
           } else {
             allMessages.push(...messagesTemp);
           }
-
-          console.log(allMessages.length);
         }
 
-        console.log('WE MADE IT OUT OF THE LOOP');
-        console.log(
-          allMessages.map((msg) => `${msg.author.id}: ${msg.content}`)
-        );
+        // Figure out which messages are logs, and log them
+        let count = 0;
+        for (const msg of allMessages) {
+          const [start, end] = getStartAndEnd(msg.content);
+          if (start && end) {
+            const toCreate = [];
+            const discordId = msg.author.id;
+            const date = msg.createdTimestamp;
+            const watched = await VideoView.find({ discordId });
+            for (let index = start; index <= end; index++) {
+              if (watched.findIndex((item) => item.index === index) === -1) {
+                count++;
+                toCreate.push({
+                  discordId,
+                  index,
+                  date,
+                });
+              }
+            }
 
-        // WE NOW HAVE A LOG OF ALL THE MESSAGES
-        // SO WE JUST NEED TO PUT THEM IN THE DATABASE
-        return message.reply('TODO');
+            const items = await VideoView.insertMany(toCreate);
+            if (items) console.log(`Logged ${start}-${end}`);
+          }
+        }
+
+        return message.reply(
+          `Backlog processing complete. Logged ${count} items. Hopefully this worked lol. Check the database...`
+        );
       }
 
       /**
@@ -135,3 +148,47 @@ module.exports = {
     });
   },
 };
+
+/**
+ * Get start and end params from log messages
+ */
+function getStartAndEnd(message) {
+  let start = undefined;
+  let end = undefined;
+
+  // logs with start and end
+  if (message.match(/!?#?\d+ to !?#?\d+/) || message.match(/\d+-#?\d+/)) {
+    // formats matched:
+    // !log #15 to #30
+    // !log 15 to 30
+    // !15 to !30
+    // !log 15-30
+    // #15 - #30
+    [start, end] = message.match(/\d+/g);
+  }
+
+  // logs with only end
+  if (
+    message.match(/!log -> #?\d+/) ||
+    message.match(/^!log #?\d+$/) ||
+    message.match(/^#?\d+$/)
+  ) {
+    // formats matched:
+    // !log -> #30
+    // !log -> 30
+    // !log #30
+    // #30
+    // 30
+    start = 1;
+    [end] = message.match(/\d+/g);
+  }
+
+  if (start && end) {
+    start = Number(start);
+    end = Number(end);
+
+    console.log('message:', message, 'start', start, 'end', end);
+  }
+
+  return [start, end];
+}
