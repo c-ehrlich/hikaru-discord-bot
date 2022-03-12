@@ -5,11 +5,12 @@ module.exports = {
   data: new SlashCommandBuilder()
     .setName('log')
     .setDescription('Log videos')
+
     .addIntegerOption((option) =>
       option
         .setName('start')
         .setDescription('First video watched')
-        .setRequired(false)
+        .setRequired(true)
         .setMinValue(1)
     )
     .addIntegerOption((option) =>
@@ -19,8 +20,9 @@ module.exports = {
         .setRequired(true)
         .setMinValue(1)
     ),
+
   async execute(interaction) {
-    const start = interaction.options.getInteger('start') || 1;
+    const start = interaction.options.getInteger('start');
     const end = interaction.options.getInteger('end');
 
     const discordId = interaction.user.id;
