@@ -1,10 +1,12 @@
+const { VideoView } = require('./schema');
+
 module.exports = {
   handleOldStyleCommands: (client) => {
     client.on('messageCreate', async (message) => {
       // tell people who attempt to use '!log' to use '/log' instead
       if (message.content.match(/^!log/)) {
         message.reply(
-          'We\'ve stopped using exclamation mark syntax. Please type a message with slash syntax, such as "/log 15-25"'
+          'We\'ve stopped using exclamation mark syntax. Please type a message with slash syntax, such as "/log start:1 end:10"'
         );
       }
 
@@ -14,7 +16,7 @@ module.exports = {
       // in putting a nice ui around it
       if (
         message.content === '!backlog' &&
-        message.author.id === '190543707592720384'
+        message.author.id === process.env.SUPERUSER_ID
       ) {
         let stillSearching = true;
         const allMessages = [];
@@ -80,6 +82,55 @@ module.exports = {
 
         // WE NOW HAVE A LOG OF ALL THE MESSAGES
         // SO WE JUST NEED TO PUT THEM IN THE DATABASE
+        return message.reply('TODO');
+      }
+
+      /**
+       * Delete the entire database
+       */
+      if (
+        message.content === '!deleteall' &&
+        message.author.id === process.env.SUPERUSER_ID
+      ) {
+        await VideoView.deleteMany({});
+        const videos = await VideoView.find({});
+        if (videos.length === 0) {
+          return message.reply('Successfully deleted all data');
+        } else {
+          return message.reply(
+            `Failed to delete all data. There are ${videos.length} items remaining.`
+          );
+        }
+      }
+
+      /**
+       * Delete logs from one user
+       */
+      if (
+        message.content.match(/^!deleteuser\s[a-zA-Z0-9]+$/) &&
+        message.author.id === process.env.SUPERUSER_ID
+      ) {
+        const discordId = message.content.match(/[a-zA-Z0-9]+$/);
+
+        const deleted = await VideoView.deleteMany({ discordId });
+
+        const videos = await VideoView.find({ discordId });
+
+        if (
+          deleted.acknowledged &&
+          deleted.deletedCount > 0 &&
+          videos.length === 0
+        ) {
+          return message.reply(
+            `Successfully deleted all logs for this user id. ${deleted.deletedCount} items deleted.`
+          );
+        }
+        if (deleted.deletedCount === 0 && videos.length === 0) {
+          return message.reply('Did not find any logs for this user id');
+        }
+        return message.reply(
+          `Did not successfully delete logs for this user. ${videos.length} items remain.`
+        );
       }
     });
   },
