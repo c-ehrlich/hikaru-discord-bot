@@ -54,7 +54,6 @@ module.exports = {
 };
 
 function createLeaderboardString(data, year, month) {
-  console.log(year, month);
   let header = '';
   let body = '';
   if (!year && !month) {
