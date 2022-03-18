@@ -4,7 +4,8 @@
   "main": "index.js",
   "license": "MIT",
   "scripts": {
-    "start": "node src/index.js"
+    "start": "node src/index.js",
+    "postinstall": "node src/deploy-commands"
   },
   "dependencies": {
     "@discordjs/builders": "^0.12.0",
