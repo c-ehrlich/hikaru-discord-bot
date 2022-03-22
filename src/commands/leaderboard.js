@@ -43,9 +43,15 @@ module.exports = {
       return await interaction.reply(noDataFoundString(year, month));
     }
 
-    data.forEach((item) => {
-      item.discord = interaction.client.users.cache.get(item._id);
-    });
+    // get user info for each user in the leaderboard
+    // each user's info may or may not be cached
+    for (const item of data) {
+      let user = interaction.client.users.cache.get(item._id);
+      if (!user) {
+        user = await interaction.client.users.fetch(item._id);
+      }
+      item.discord = user;
+    }
 
     const reply = createLeaderboardString(data, year, month);
 
@@ -71,12 +77,16 @@ function createLeaderboardString(data, year, month) {
     if (month > currentMonth) year -= 1;
   }
 
-
   if (year & month) {
     header = `Leaderboard for ${getTextMonth(month)} ${year}`;
   }
 
   data.forEach((item, acc) => {
+    console.log(item);
+    console.log(
+      'adding to leaderboard string:',
+      `${rankEmoji(acc + 1)}. ${item.discord.username} - ${item.count}\n`
+    );
     body += `${rankEmoji(acc + 1)}. ${item.discord.username} - ${item.count}\n`;
   });
 
