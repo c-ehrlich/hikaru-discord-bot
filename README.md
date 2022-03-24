@@ -6,10 +6,10 @@
 This is a Discord Bot for tracking progress for the Hikaru Challenge, an immersion challenge in the language learning community. With a bit of re-themeing, it could also be used to track just about anything else.
 
 ## Setup
-- Deploy this repository. It should be able to run on any service that can run Node.js apps, but a Procfile is included specifically for Heroku. If deployed to Heroku, the Dyno type will need to be changed from the default 'web' to 'worker'. Please note that if using a free account, this bot will use up to 744 (31*24) of your 1000 monthly free hours as it needs to run 24/7.
-- Create a MongoDB Database, for example on [MongoDB Atlas](https://www.mongodb.com/atlas/database). Note the URI to connect to the database.
-- Go to the [Discord Developer Portal](https://discord.com/developers/applications) and create a new Bot. Give it a name, description, and avatar image if you like. Make sure to note the bot's Discord Token and Client ID.
-- Create your environent variables. Depending on how you are deploying, this will either mean creating a .env file based on the sample.env template, or changing the Config Vars in a web interface
+- Deploy this repository. It should be able to run on any service that can run Node.js apps, but a `Procfile` is included specifically for Heroku. If deployed to Heroku, the Dyno type will need to be changed from the default `web` to `worker`. Please note that if using a free account, this bot will use up to 744 (31*24) of your 1000 free monthly hours as it needs to run 24/7.
+- Create a MongoDB Database. A good free choice is the [MongoDB Atlas](https://www.mongodb.com/atlas/database) free tier. Note the URI to connect to the database.
+- Go to the [Discord Developer Portal](https://discord.com/developers/applications) and create a new Bot. Give it a name, description, and avatar image. Make sure to note the bot's Discord Token and Client ID.
+- Create your environent variables. Depending on how you are deploying, this will either mean creating a `.env` file based on the `sample.env` template, or changing the Config Vars in a web interface
   - `DISCORD_TOKEN`: The Discord Token you got while creating the bot
   - `CLIENT_ID`: The Client ID you got while creating the bot
   - `MONGO_URI`: The URI to connect to your MongoDB Database
@@ -23,12 +23,10 @@ This is a Discord Bot for tracking progress for the Hikaru Challenge, an immersi
     - Text Permissions
       - Send Messages
       - Send Messages in Threads
-      - Embed Links
       - Read Message History
-      - Add Reactions
       - Use Slash Commands
 - Give the invite link to a moderator of the server, who needs to click it to allow the bot to enter the server.
-- Once the bot is in the server, run `node src/deploy-commands.js` to create documentation and auto-complete for commands on the server
+- Once the bot is in the server, run `node src/deploy-commands.js` to deploy command documentation and auto-complete to the server.
 - After deploying commands, restart the bot and it should now be ready to listen for commands.
 
 ## Considerations
